@@ -1,28 +1,23 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const useGetRequest = (url) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const fetchData = async () => {
+    const response = await fetch(url);
+    const data = await response.json();
+    console.log(data);
+    return data;
+  };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
-        setData(json);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    isLoading,
+    error,
+    data: postData,
+  } = useQuery({
+    queryKey: ["posts"],
+    queryFn: fetchData,
+  });
 
-    fetchData();
-  }, [url]);
-
-  return { data, loading, error };
+  return { postData, isLoading, error };
 };
 
 export default useGetRequest;

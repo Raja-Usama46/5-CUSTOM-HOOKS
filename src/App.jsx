@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import useGetRequest from "./hooks/useGetRequest";
 import usePostRequest from "./hooks/usePostRequest";
 import usePutRequest from "./hooks/usePutRequest";
 import usePatchRequest from "./hooks/usePatchRequest";
 import useDeleteRequest from "./hooks/useDeleteRequest";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import postSchema from "./components/ValidationSchema";
 
 const App = () => {
   const {
-    data: posts,
-    loading: loadingGet,
+    postData: posts,
+    isLoading: loadingGet,
     error: errorGet,
   } = useGetRequest("https://jsonplaceholder.typicode.com/posts");
 
@@ -16,6 +18,7 @@ const App = () => {
     execute: postRequest,
     data: newPost,
     error: errorPost,
+    isLoading: loadingPost,
   } = usePostRequest();
 
   const {
@@ -42,12 +45,17 @@ const App = () => {
     delete: {},
   });
 
-  const handleAdd = () =>
+  const [showForm, setShowForm] = useState(false);
+
+  const handleSubmit = (values, { resetForm }) => {
     postRequest("https://jsonplaceholder.typicode.com/posts", {
-      title: "New Post",
-      body: "Content...",
+      title: values.title,
+      body: values.body,
       userId: 101,
     });
+    resetForm();
+    setShowForm(false);
+  };
 
   const handleAction = async (action, id, requestFn) => {
     setLoadingStates((prev) => ({
@@ -74,13 +82,87 @@ const App = () => {
 
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-semibold text-gray-800">Posts</h2>
-          <button
-            onClick={handleAdd}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
-          >
-            <PlusIcon />
-            Create Post
-          </button>
+
+          {showForm ? (
+            <div className="bg-white p-4 rounded-lg shadow-md w-full max-w-md">
+              <h3 className="text-lg font-semibold mb-3">Create New Post</h3>
+              <Formik
+                initialValues={{ title: "", body: "" }}
+                validationSchema={postSchema}
+                onSubmit={handleSubmit}
+              >
+                {({ errors, touched, isSubmitting }) => (
+                  <Form>
+                    <div className="mb-3">
+                      <label className="block text-gray-700 mb-1">Title</label>
+                      <Field
+                        name="title"
+                        type="text"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
+                          errors.title && touched.title ? "border-red-500" : ""
+                        }`}
+                      />
+                      <ErrorMessage
+                        name="title"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-gray-700 mb-1">
+                        Content
+                      </label>
+                      <Field
+                        name="body"
+                        as="textarea"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
+                          errors.body && touched.body ? "border-red-500" : ""
+                        }`}
+                        rows="3"
+                      />
+                      <ErrorMessage
+                        name="body"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+                    <div className="flex gap-3 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(false)}
+                        className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Spinner />
+                            Creating...
+                          </>
+                        ) : (
+                          "Create"
+                        )}
+                      </button>
+                    </div>
+                  </Form>
+                )}
+              </Formik>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <PlusIcon />
+              Create Post
+            </button>
+          )}
         </div>
 
         {errorPost && <ErrorAlert message={`POST Error: ${errorPost}`} />}
@@ -112,7 +194,6 @@ const App = () => {
                             id: post.id,
                             title: "Updated",
                             body: "Updated content",
-                            userId: 1,
                           }
                         )
                       )
@@ -183,6 +264,7 @@ const App = () => {
   );
 };
 
+// Icons and components remain the same as before
 const PlusIcon = () => (
   <svg
     className="w-5 h-5"
